@@ -13,7 +13,7 @@ enum Operator {
 };
 
 enum ErrorCode {
-	ec_ok, ec_invalid_syntax, ec_div_zero
+	ec_ok, ec_invalid_syntax, ec_div_zero, ec_invalid_symbol
 };
 
 typedef int Number;
