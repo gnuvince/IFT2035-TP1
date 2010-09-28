@@ -43,7 +43,41 @@ struct Expr {
 	} value;
 };
 
-int main() {
+void printOp(int operator) {
+
+	switch(operator) {
+	case (op_add):
+			printf("+"); break;
+	case (op_sub):
+			printf("-"); break;
+	case (op_mul):
+			printf("*"); break;
+	case (op_div):
+			printf("/"); break;
+	}
+}
+
+void printList(struct List *L) {
+	struct List *elt;
+
+	elt = L;
+
+	printf("\n[(");
+	while (elt != NULL) {
+		printf(" ");
+		if (elt->value.type == op) {
+			printOp(elt->value.value.operator);
+		} else {
+			printf("%d", elt->value.value.number);
+		}
+		elt = elt->next;
+		if (elt != NULL)
+			printf(",");
+	}
+	printf(" )]\n");
+}
+
+struct List * getList() {
 	// On construit une liste a mano representant l'expression:
 	// 31 4 - 8 5 * + 67 /
 	// ==> [(/, 67, +, *, 5, 8, -, 4, 31)]
@@ -60,7 +94,6 @@ int main() {
 	L = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = num;
 	token->value.number = 67;
 	node = malloc(sizeof(struct List));
@@ -69,7 +102,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = op;
 	token->value.number = op_add;
 	node = malloc(sizeof(struct List));
@@ -78,7 +110,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = op;
 	token->value.number = op_mul;
 	node = malloc(sizeof(struct List));
@@ -87,7 +118,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = num;
 	token->value.number = 5;
 	node = malloc(sizeof(struct List));
@@ -96,7 +126,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = num;
 	token->value.number = 8;
 	node = malloc(sizeof(struct List));
@@ -105,7 +134,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = op;
 	token->value.number = op_sub;
 	node = malloc(sizeof(struct List));
@@ -114,7 +142,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = num;
 	token->value.number = 4;
 	node = malloc(sizeof(struct List));
@@ -123,7 +150,6 @@ int main() {
 	last->next = node;
 	last = node;
 
-	token = malloc(sizeof(struct Token));
 	token->type = num;
 	token->value.number = 31;
 	node = malloc(sizeof(struct List));
@@ -131,6 +157,29 @@ int main() {
 	node->next = NULL;
 	last->next = node;
 	last = node;
+
+	free(token);
+	return L;
+}
+
+void freeList(struct List *L) {
+	struct List *elt, *next;
+
+	elt = L;
+
+	while (elt != NULL) {
+		next = elt->next;
+		free(elt);
+		elt = next;
+	}
+}
+
+int main() {
+	struct List *L;
+
+	L = getList();
+	printList(L);
+	freeList(L);
 
 	return 0;
 }
