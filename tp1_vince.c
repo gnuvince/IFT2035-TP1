@@ -76,7 +76,7 @@ void ListFree(struct List *list) {
     free(list);
 }
 
-void ListAdd(struct Token *t, struct List *list) {
+void ListAdd(struct List *list, struct Token *t) {
     struct Node *new = malloc(sizeof(struct Node));
     new->value = *t;
     new->next = list->head;
@@ -108,16 +108,16 @@ int main(void) {
     struct Node *n;
     int i;
 
-        struct Token t;
+    struct Token t;
     for (i = 5; i > 0; --i) {
         t.type = num;
         t.value.number = i;
-        ListAdd(&t, l);
+        ListAdd(l, &t);
     }
 
     t.type = op;
     t.value.operator = op_mul;
-    ListAdd(&t, l);
+    ListAdd(l, &t);
 
 
     for (n = l->head; n != NULL; n = n->next) {
