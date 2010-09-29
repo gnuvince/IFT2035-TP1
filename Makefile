@@ -2,8 +2,8 @@ CC=gcc
 
 all: vince eric
 
-vince:
+vince: tp1_vince.c
 	${CC} -Wall -Wextra -pedantic -std=c89 -o vince tp1_vince.c
 
-eric:
-	${CC} -Wall -Wextra -pedantic -std=c89 -o vince tp1_eric.c
+eric: tp1_eric.c
+	${CC} -Wall -Wextra -pedantic -std=c89 -o eric tp1_eric.c
