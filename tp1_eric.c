@@ -13,7 +13,8 @@ enum Operator {
 };
 
 enum ErrorCode {
-	ec_ok, ec_invalid_syntax, ec_div_zero, ec_invalid_symbol
+	ec_ok, ec_invalid_syntax, ec_empty_expression,
+	ec_div_zero, ec_invalid_symbol
 };
 
 typedef int Number;
@@ -88,7 +89,7 @@ int ListLen(struct List *list) {
 	struct Node *node = list->head;
 	while (node != NULL) {
 		len += 1;
-		node = node.next;
+		node = node->next;
 	}
 	return len;
 }
@@ -206,8 +207,8 @@ struct AST *ASTNew() {
 
 struct Expr *ExprNew() {
 	struct Expr *node = malloc(sizeof(struct Expr));
-	node.value.expression.left = NULL;
-	node.value.expression.right = NULL;
+	node->value.expression.left = NULL;
+	node->value.expression.right = NULL;
 	return node;
 }
 
@@ -228,65 +229,120 @@ void ASTFree(struct AST *ast) {
 }
 
 enum ErrorCode getexpr(struct List *tokens, struct Expr *subtree) {
-	struct Token *token = tokens->head.value;
+	struct Token token;
 	enum ErrorCode error;
 
-	//consume 1 token
+	/* getexpr should not be called with an empty token list */
+	if (tokens->head == NULL)
+		return ec_invalid_syntax;
+
+	/* consume 1 token */
+	token = tokens->head->value;
 	tokens->head = tokens->head->next;
 
-	if (token->type = num) {	// leaf => operand
+	/* process the token */
+	if (token.type == num) {	/* operand => leaf*/
 		subtree->type = operand;
-		subtree.value.number = token->value.number;
-	} else {					// internal node => operator
+		subtree->value.number = token.value.number;
+	} else {					/* operator => internal node */
 		subtree->type = expr;
-		subtree->value.expression.operator = token->value.operator;
-		// process right subtree
+		subtree->value.expression.operator = token.value.operator;
+
+		/* process right subtree */
 		subtree->value.expression.right = ExprNew();
-		error = getexpr(&tokens, subtree->value.expression.right);
+		error = getexpr(tokens, subtree->value.expression.right);
 		if (error != ec_ok) return error;
-		// process left subtree
+
+		/* process left subtree */
 		subtree->value.expression.left = ExprNew();
-		error = getexpr(&tokens, subtree->value.expression.left);
+		error = getexpr(tokens, subtree->value.expression.left);
 		if (error != ec_ok) return error;
 	}
 	return ec_ok;
 }
 
 enum ErrorCode ASTize(struct List *tokens, struct AST *ast) {
-	if (ListLen(tokens) == 1 && tokens->head.value.type != num)
+	int length = ListLen(tokens);
+	enum ErrorCode error;
+
+	printf("%d\n", length);
+	if (length == 0)
+		return ec_empty_expression;
+	if (length == 1 && tokens->head->value.type != num)
 		return ec_invalid_syntax;
-	else
-		return getexpr(tokens, ast->root);
+	if (tokens->head->value.type == num && length > 1)
+		return ec_invalid_syntax;
+
+	/* recursively build the AST */
+	error = getexpr(tokens, ast->root);
+	if (error != ec_ok)
+		return error;
+	if (ListLen(tokens) != 0)
+		return ec_invalid_syntax;
+
+	return ec_ok;
+}
+
+void ExprPrint (struct Expr *expr) {
+	if (expr->type == operand)
+		printf("%d ", expr->value.number);
+	else {
+		ExprPrint(expr->value.expression.left);
+		ExprPrint(expr->value.expression.right);
+		printf("%c ", OperatorToChar(expr->value.expression.operator));
+	}
+}
+
+void ASTprint (struct AST *ast) {
+	if (ast != NULL) {
+		ExprPrint(ast->root);
+		printf("\n");
+	}
 }
 
 int main(void) {
     struct List *tokens = ListNew();
     struct Node *n;
     enum ErrorCode tokenize_error, astize_error;
+	struct AST *ast;
+	struct Expr *expr;
 
     tokenize_error = Tokenize(tokens);
 
     switch (tokenize_error) {
     case ec_ok:
-    	//struct AST *ast = ASTNew();
-    	//struct Expr *expr  = ExprNew();
-    	//ast->root = expr;
-    	//astize_error = ASTize(tokens, ast);
-    	//switch(astize_error)...
-    	//...
+    	for (n = tokens->head; n != NULL; n = n->next) {
+			if ((*n).value.type == op)
+				printf("%c ", OperatorToChar((*n).value.value.operator));
+			else
+				printf("%d ", (*n).value.value.number);
+		}
+    	printf("\n");
+    	/* ASTizing */
+    	printf("ASTizing\n");
+    	ast = ASTNew();
+    	expr  = ExprNew();
+    	ast->root = expr;
+    	astize_error = ASTize(tokens, ast);
 
-        for (n = tokens->head; n != NULL; n = n->next) {
-            if ((*n).value.type == op)
-                printf("%c ", OperatorToChar((*n).value.value.operator));
-            else
-                printf("%d ", (*n).value.value.number);
-        }
-        printf("\n");
-        break;
+    	switch (astize_error) {
+    	case ec_ok:
+    		ASTprint(ast);
+			break;
 
-    case ec_invalid_syntax:
-        printf("Invalid syntax.\n");
-        break;
+    	case ec_invalid_syntax:
+			printf("Invalid syntax.\n");
+			break;
+
+    	case ec_empty_expression:
+			printf("Empty expression provided.\n");
+			break;
+
+    	case ec_div_zero:
+    	case ec_invalid_symbol:
+			break;
+    	}
+    	break;
 
     case ec_invalid_symbol:
         printf("Invalid symbol.\n");
@@ -295,6 +351,10 @@ int main(void) {
     case ec_div_zero:
         printf("Division by zero.\n");
         break;
+
+    case ec_invalid_syntax:
+    case ec_empty_expression:
+    	break;
     }
 
 
