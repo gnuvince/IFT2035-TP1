@@ -14,7 +14,7 @@ enum Operator {
 
 enum ErrorCode {
 	ec_ok, ec_invalid_syntax, ec_empty_expression,
-	ec_div_zero, ec_invalid_symbol
+	ec_div_zero, ec_invalid_symbol, ec_eof
 };
 
 typedef int Number;
@@ -140,8 +140,9 @@ enum ErrorCode Tokenize(struct List *tokens) {
     int c;
     int number;
 
-    while ((c = getchar()) != '\n') {
-        if (c == EOF) exit(0);
+    while (1) {
+        c = getchar();
+        if (c == EOF) return ec_eof;
         if (!isvalid(c)) return ec_invalid_symbol;
 
         switch (state) {
@@ -155,9 +156,6 @@ enum ErrorCode Tokenize(struct List *tokens) {
                 token.type = op;
                 token.value.operator = CharToOperator(c);
                 ListAdd(tokens, &token);
-            }
-            else if (isspace(c)) {
-                /* Stay in the same state. */
             }
             break;
 
@@ -190,6 +188,8 @@ enum ErrorCode Tokenize(struct List *tokens) {
         default:
             break;
         }
+
+        if (c == '\n') break;
     }
 
     return ec_ok;
@@ -340,6 +340,7 @@ int main(void) {
 
     	case ec_div_zero:
     	case ec_invalid_symbol:
+    	case ec_eof:
 			break;
     	}
     	break;
@@ -351,6 +352,10 @@ int main(void) {
     case ec_div_zero:
         printf("Division by zero.\n");
         break;
+
+    case ec_eof:
+            printf("EOF\n");
+            break;
 
     case ec_invalid_syntax:
     case ec_empty_expression:
