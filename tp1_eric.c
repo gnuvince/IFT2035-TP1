@@ -218,6 +218,7 @@ void ExprFree(struct Expr *node) {
 	else {
 		ExprFree(node->value.expression.left);
 		ExprFree(node->value.expression.right);
+		free(node);
 	}
 }
 
@@ -362,7 +363,7 @@ int main(void) {
     	break;
     }
 
-
+    ASTFree(ast);
     ListFree(tokens);
 
     return 0;
