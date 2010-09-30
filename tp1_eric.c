@@ -13,7 +13,7 @@ enum Operator {
 };
 
 enum ErrorCode {
-	ec_ok, ec_invalid_syntax, ec_div_zero
+	ec_ok, ec_invalid_syntax, ec_div_zero, ec_invalid_symbol
 };
 
 typedef int Number;
@@ -26,10 +26,16 @@ struct Token {
 	} value;
 };
 
-struct List {
+
+struct Node {
 	struct Token value;
-	struct List *next;
+	struct Node *next;
 };
+
+struct List {
+    struct Node *head;
+};
+
 
 struct Expr {
 	enum { operand, expr } type;
@@ -43,143 +49,256 @@ struct Expr {
 	} value;
 };
 
-void printOp(int operator) {
 
-	switch(operator) {
-	case (op_add):
-			printf("+"); break;
-	case (op_sub):
-			printf("-"); break;
-	case (op_mul):
-			printf("*"); break;
-	case (op_div):
-			printf("/"); break;
+
+enum TokenizerState { st_normal, st_number, st_operator };
+
+
+
+/***
+ * List manipulation functions.
+ ***/
+struct List *ListNew() {
+    struct List *list = malloc(sizeof(struct List));
+    list->head = NULL;
+    return list;
+}
+
+void ListFree(struct List *list) {
+    /* Free every node in the list. */
+    while (list->head != NULL) {
+        struct Node *next = list->head->next;
+        free(list->head);
+        list->head = next;
+    }
+
+    /* Free the actual list pointer. */
+    free(list);
+}
+
+void ListAdd(struct List *list, struct Token *t) {
+    struct Node *new = malloc(sizeof(struct Node));
+    new->value = *t;
+    new->next = list->head;
+    list->head = new;
+}
+
+int ListLen(struct List *list) {
+	int len = 0;
+	struct Node *node = list->head;
+	while (node != NULL) {
+		len += 1;
+		node = node.next;
+	}
+	return len;
+}
+
+int isspace(int c) {
+    return c == ' ' || c == '\t' || c == '\n';
+}
+
+int isdigit(int c) {
+    return c >= '0' && c <= '9';
+}
+
+int isoperator(int c) {
+    return c == '+'
+        || c == '-'
+        || c == '*'
+        || c == '/';
+}
+
+int isvalid(int c) {
+    return isspace(c) || isdigit(c) || isoperator(c);
+}
+
+
+int digit_to_int(int c) {
+    return c - '0';
+}
+
+
+char OperatorToChar(enum Operator op) {
+    return "+-*/"[op];
+}
+
+
+enum Operator CharToOperator(char c) {
+    switch (c) {
+    case '+': return op_add;
+    case '-': return op_sub;
+    case '*': return op_mul;
+    case '/': return op_div;
+    }
+    return '_'; /* Should be unreachable. */
+}
+
+
+enum ErrorCode Tokenize(struct List *tokens) {
+    enum TokenizerState state = st_normal;
+    int c;
+    int number;
+
+    while ((c = getchar()) != '\n') {
+        if (c == EOF) exit(0);
+        if (!isvalid(c)) return ec_invalid_symbol;
+
+        switch (state) {
+        case st_normal:
+            if (isdigit(c)) {
+                number = digit_to_int(c);
+                state = st_number;
+            }
+            else if (isoperator(c)) {
+                struct Token token;
+                token.type = op;
+                token.value.operator = CharToOperator(c);
+                ListAdd(tokens, &token);
+            }
+            else if (isspace(c)) {
+                /* Stay in the same state. */
+            }
+            break;
+
+        case st_number:
+            if (isdigit(c)) {
+                number = 10*number + digit_to_int(c);
+            }
+            else if (isoperator(c)) {
+                return ec_invalid_syntax;
+            }
+            else if (isspace(c)) {
+                struct Token token;
+                token.type = num;
+                token.value.number = number;
+                ListAdd(tokens, &token);
+
+                state = st_normal;
+            }
+            break;
+
+        case st_operator:
+            if (isdigit(c) || isoperator(c)) {
+                return ec_invalid_syntax;
+            }
+            else if (isspace(c)) {
+                state = st_normal;
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    return ec_ok;
+}
+
+struct AST {
+	struct Expr *root;
+};
+
+struct AST *ASTNew() {
+	struct AST *ast = malloc(sizeof(struct AST));
+	ast->root = NULL;
+	return ast;
+}
+
+struct Expr *ExprNew() {
+	struct Expr *node = malloc(sizeof(struct Expr));
+	node.value.expression.left = NULL;
+	node.value.expression.right = NULL;
+	return node;
+}
+
+void ExprFree(struct Expr *node) {
+	if (node->type == operand)
+		free(node);
+	else {
+		ExprFree(node->value.expression.left);
+		ExprFree(node->value.expression.right);
 	}
 }
 
-void printList(struct List *L) {
-	struct List *elt;
-
-	elt = L;
-
-	printf("\n[(");
-	while (elt != NULL) {
-		printf(" ");
-		if (elt->value.type == op) {
-			printOp(elt->value.value.operator);
-		} else {
-			printf("%d", elt->value.value.number);
-		}
-		elt = elt->next;
-		if (elt != NULL)
-			printf(",");
-	}
-	printf(" )]\n");
-}
-
-struct List * getList() {
-	// On construit une liste a mano representant l'expression:
-	// 31 4 - 8 5 * + 67 /
-	// ==> [(/, 67, +, *, 5, 8, -, 4, 31)]
-
-	struct List *L, *last;
-
-	struct Token *token = malloc(sizeof(struct Token));
-	token->type = op;
-	token->value.operator = op_div;
-
-	struct List *node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	L = node;
-	last = node;
-
-	token->type = num;
-	token->value.number = 67;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = op;
-	token->value.number = op_add;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = op;
-	token->value.number = op_mul;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = num;
-	token->value.number = 5;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = num;
-	token->value.number = 8;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = op;
-	token->value.number = op_sub;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = num;
-	token->value.number = 4;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	token->type = num;
-	token->value.number = 31;
-	node = malloc(sizeof(struct List));
-	node->value = *token;
-	node->next = NULL;
-	last->next = node;
-	last = node;
-
-	free(token);
-	return L;
-}
-
-void freeList(struct List *L) {
-	struct List *elt, *next;
-
-	elt = L;
-
-	while (elt != NULL) {
-		next = elt->next;
-		free(elt);
-		elt = next;
+void ASTFree(struct AST *ast) {
+	if (ast->root != NULL) {
+		ExprFree(ast->root);
+		free(ast);
 	}
 }
 
-int main() {
-	struct List *L;
+enum ErrorCode getexpr(struct List *tokens, struct Expr *subtree) {
+	struct Token *token = tokens->head.value;
+	enum ErrorCode error;
 
-	L = getList();
-	printList(L);
-	freeList(L);
+	//consume 1 token
+	tokens->head = tokens->head->next;
 
-	return 0;
+	if (token->type = num) {	// leaf => operand
+		subtree->type = operand;
+		subtree.value.number = token->value.number;
+	} else {					// internal node => operator
+		subtree->type = expr;
+		subtree->value.expression.operator = token->value.operator;
+		// process right subtree
+		subtree->value.expression.right = ExprNew();
+		error = getexpr(&tokens, subtree->value.expression.right);
+		if (error != ec_ok) return error;
+		// process left subtree
+		subtree->value.expression.left = ExprNew();
+		error = getexpr(&tokens, subtree->value.expression.left);
+		if (error != ec_ok) return error;
+	}
+	return ec_ok;
+}
+
+enum ErrorCode ASTize(struct List *tokens, struct AST *ast) {
+	if (ListLen(tokens) == 1 && tokens->head.value.type != num)
+		return ec_invalid_syntax;
+	else
+		return getexpr(tokens, ast->root);
+}
+
+int main(void) {
+    struct List *tokens = ListNew();
+    struct Node *n;
+    enum ErrorCode tokenize_error, astize_error;
+
+    tokenize_error = Tokenize(tokens);
+
+    switch (tokenize_error) {
+    case ec_ok:
+    	//struct AST *ast = ASTNew();
+    	//struct Expr *expr  = ExprNew();
+    	//ast->root = expr;
+    	//astize_error = ASTize(tokens, ast);
+    	//switch(astize_error)...
+    	//...
+
+        for (n = tokens->head; n != NULL; n = n->next) {
+            if ((*n).value.type == op)
+                printf("%c ", OperatorToChar((*n).value.value.operator));
+            else
+                printf("%d ", (*n).value.value.number);
+        }
+        printf("\n");
+        break;
+
+    case ec_invalid_syntax:
+        printf("Invalid syntax.\n");
+        break;
+
+    case ec_invalid_symbol:
+        printf("Invalid symbol.\n");
+        break;
+
+    case ec_div_zero:
+        printf("Division by zero.\n");
+        break;
+    }
+
+
+    ListFree(tokens);
+
+    return 0;
 }
