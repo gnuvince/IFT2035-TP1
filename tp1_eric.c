@@ -256,14 +256,29 @@ void SchemePrint(struct AST *ast) {
 		SchemeExprPrint(ast->root);
 		printf("\n");
 	}
+}
 
+void CExprPrint(struct Expr *expr) {
+	if (expr->type == operand)
+			printf("%d", expr->value.number);
+	else {
+		printf("(");
+		CExprPrint(expr->value.expression.left);
+		printf(" ");
+		printf("%c", OperatorToChar(expr->value.expression.operator));
+		printf(" ");
+		CExprPrint(expr->value.expression.right);
+		printf(")");
+	}
 }
 
 void CPrint(struct AST *ast) {
-	int a;
-
-	if (ast)
-		a = 0;
+	if (ast->root->type == operand)
+		printf("%d\n", ast->root->value.number);
+	else {
+		CExprPrint(ast->root);
+		printf("\n");
+	}
 }
 
 void PSExprPrint(struct Expr *expr) {
