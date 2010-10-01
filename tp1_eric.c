@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+char *ps_operators[4] = {"add", "sub", "mul", "div"};
+
 enum Operator {
 	op_add, op_sub, op_mul, op_div
 };
@@ -124,6 +126,11 @@ char OperatorToChar(enum Operator op) {
 }
 
 
+char * OperatorToPS(enum Operator op) {
+    return ps_operators[op];
+}
+
+
 enum Operator CharToOperator(char c) {
     switch (c) {
     case '+': return op_add;
@@ -229,6 +236,68 @@ void ASTFree(struct AST *ast) {
 	}
 }
 
+void SchemeExprPrint(struct Expr *expr) {
+	if (expr->type == operand)
+		printf("%d", expr->value.number);
+	else {
+		printf("(");
+		printf("%c ", OperatorToChar(expr->value.expression.operator));
+		SchemeExprPrint(expr->value.expression.left);
+		printf(" ");
+		SchemeExprPrint(expr->value.expression.right);
+		printf(")");
+	}
+}
+
+void SchemePrint(struct AST *ast) {
+	if (ast->root->type == operand)
+		printf("%d\n", ast->root->value.number);
+	else {
+		SchemeExprPrint(ast->root);
+		printf("\n");
+	}
+
+}
+
+void CPrint(struct AST *ast) {
+	int a;
+
+	if (ast)
+		a = 0;
+}
+
+void PSExprPrint(struct Expr *expr) {
+	if (expr->type == operand)
+		printf("%d", expr->value.number);
+	else {
+		PSExprPrint(expr->value.expression.left);
+		printf(" ");
+		PSExprPrint(expr->value.expression.right);
+		printf(" ");
+		printf("%s", OperatorToPS(expr->value.expression.operator));
+	}
+}
+
+void PSPrint(struct AST *ast) {
+	PSExprPrint(ast->root);
+	printf("\n");
+}
+
+void ValuePrint(struct AST *ast) {
+	int a;
+
+	if (ast)
+		a = 0;
+}
+
+void Report(struct AST *ast) {
+	SchemePrint(ast);
+	CPrint(ast);
+	PSPrint(ast);
+	ValuePrint(ast);
+	printf("\n");
+}
+
 enum ErrorCode getexpr(struct List *tokens, struct Expr *subtree) {
 	struct Token token;
 	enum ErrorCode error;
@@ -325,6 +394,7 @@ int main(void) {
     	expr  = ExprNew();
     	ast->root = expr;
     	astize_error = ASTize(tokens, ast);
+    	Report(ast);
 
     	switch (astize_error) {
     	case ec_ok:
