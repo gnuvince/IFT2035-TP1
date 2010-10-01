@@ -350,7 +350,6 @@ enum ErrorCode ASTize(struct List *tokens, struct AST *ast) {
 	int length = ListLen(tokens);
 	enum ErrorCode error;
 
-	printf("%d\n", length);
 	if (length == 0)
 		return ec_empty_expression;
 	if (length == 1 && tokens->head->value.type != num)
@@ -387,7 +386,7 @@ void ASTprint (struct AST *ast) {
 
 int main(void) {
     struct List *tokens = ListNew();
-    struct Node *n;
+    /* struct Node *n; */
     enum ErrorCode tokenize_error, astize_error;
 	struct AST *ast;
 	struct Expr *expr;
@@ -396,15 +395,14 @@ int main(void) {
 
     switch (tokenize_error) {
     case ec_ok:
-    	for (n = tokens->head; n != NULL; n = n->next) {
+    	/* for (n = tokens->head; n != NULL; n = n->next) {
 			if ((*n).value.type == op)
 				printf("%c ", OperatorToChar((*n).value.value.operator));
 			else
 				printf("%d ", (*n).value.value.number);
 		}
-    	printf("\n");
+    	printf("\n"); */
     	/* ASTizing */
-    	printf("ASTizing\n");
     	ast = ASTNew();
     	expr  = ExprNew();
     	ast->root = expr;
@@ -413,7 +411,6 @@ int main(void) {
 
     	switch (astize_error) {
     	case ec_ok:
-    		ASTprint(ast);
 			break;
 
     	case ec_invalid_syntax:
