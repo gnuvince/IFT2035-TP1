@@ -99,15 +99,9 @@ int StackPop(struct Stack *stack, struct Expr *out) {
 }
 
 
-/* Return the number of expressions on the stack. */
-int StackLength(struct Stack *list) {
-	int len = 0;
-	struct Node *node = list->head;
-	while (node != NULL) {
-		len += 1;
-		node = node->next;
-	}
-	return len;
+/* Returns 1 if the stack is empty, or 0 if the stack has at least on element. */
+int StackIsEmpty(struct Stack *stack) {
+    return stack->head == NULL;
 }
 
 
@@ -175,8 +169,10 @@ enum GeneratorState { st_normal, st_number, st_operator };
 
 
 
-/* Read a string of characters from stdin and construct an AST. */
-enum ErrorCode GenerateAST(struct Stack *stack) {
+/* Read a string of characters from stdin and construct an AST.
+   Store the final expression tree in out.
+ */
+enum ErrorCode GenerateAST(struct Stack *stack, struct Expr *out) {
     enum GeneratorState state = st_normal;
     int c; /* Character that was just read. */
     int number; /* The integer that is currently being read. */
@@ -244,7 +240,14 @@ enum ErrorCode GenerateAST(struct Stack *stack) {
         if (c == '\n') break;
     }
 
-    return ec_ok;
+    if (StackPop(stack, out)) {
+        /* No more elements in the stack, expression consummed entirely. */
+        if (StackIsEmpty(stack))
+            return ec_ok;
+        else
+            return ec_invalid_syntax;
+    }
+    return ec_empty_expression;
 }
 
 
