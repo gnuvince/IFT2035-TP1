@@ -83,11 +83,19 @@ void StackPush(struct Stack *stack, struct Expr *e) {
 }
 
 
-/* Remove the top element of the stack and return it. */
-struct Expr StackPop(struct Stack *stack) {
-    struct Expr e = stack->head->value;
-    stack->head = stack->head->next;
-    return e;
+/* Remove the top element of the stack and put it in out and return 1.
+   If the stack is empty, return 0 and set out to NULL.
+ */
+int StackPop(struct Stack *stack, struct Expr *out) {
+    if (stack->head == NULL) {
+        out = NULL;
+        return 0;
+    }
+    else {
+        struct Expr e = stack->head->value;
+        *out = e;
+        return 1;
+    }
 }
 
 
@@ -166,8 +174,9 @@ enum Operator CharToOperator(char c) {
 enum GeneratorState { st_normal, st_number, st_operator };
 
 
+
 /* Read a string of characters from stdin and construct an AST. */
-enum ErrorCode GenerateAST(struct List *tokens) {
+enum ErrorCode GenerateAST(struct Stack *stack) {
     enum GeneratorState state = st_normal;
     int c; /* Character that was just read. */
     int number; /* The integer that is currently being read. */
@@ -184,10 +193,21 @@ enum ErrorCode GenerateAST(struct List *tokens) {
                 state = st_number;
             }
             else if (isoperator(c)) {
-                struct Token token;
-                token.type = op;
-                token.value.operator = CharToOperator(c);
-                ListAdd(tokens, &token);
+                /* VINCERIC: Trouver où faire le free() */
+                struct Expr *right = malloc(sizeof(struct Expr));
+                struct Expr *left = malloc(sizeof(struct Expr));
+                struct Expr *expression = malloc(sizeof(struct Expr));
+
+                /* Error if there weren't (at least) two expressions on the stack. */
+                if (!StackPop(stack, right) || !StackPop(stack, left))
+                    return ec_invalid_syntax;
+
+                expression->type = expr;
+                expression->_.expression.operator = CharToOperator(c);
+                expression->_.expression.left = left;
+                expression->_.expression.right = right;
+
+                StackPush(stack, expression);
             }
             break;
 
@@ -199,10 +219,10 @@ enum ErrorCode GenerateAST(struct List *tokens) {
                 return ec_invalid_syntax;
             }
             else if (isspace(c)) {
-                struct Token token;
-                token.type = num;
-                token.value.number = number;
-                ListAdd(tokens, &token);
+                struct Expr *expression = malloc(sizeof(struct Expr));
+                expression->type = operand;
+                expression->_.number = number;
+                StackPush(stack, expression);
 
                 state = st_normal;
             }
