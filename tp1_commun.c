@@ -74,6 +74,13 @@ void StackFree(struct Stack *stack) {
     free(stack);
 }
 
+/* Returns 1 if the stack is empty, or 0 if the stack has at least on element. */
+int StackIsEmpty(struct Stack *stack) {
+    return stack->head == NULL;
+}
+
+
+
 /* Add an expression to the top of the stack. */
 void StackPush(struct Stack *stack, struct Expr *e) {
     struct Node *new = malloc(sizeof(struct Node));
@@ -87,22 +94,17 @@ void StackPush(struct Stack *stack, struct Expr *e) {
    If the stack is empty, return 0 and set out to NULL.
  */
 int StackPop(struct Stack *stack, struct Expr *out) {
-    if (stack->head == NULL) {
+    if (StackIsEmpty(stack)) {
         out = NULL;
         return 0;
     }
     else {
-        struct Expr e = stack->head->value;
-        *out = e;
+        *out = stack->head->value;
+        stack->head = stack->head->next;
         return 1;
     }
 }
 
-
-/* Returns 1 if the stack is empty, or 0 if the stack has at least on element. */
-int StackIsEmpty(struct Stack *stack) {
-    return stack->head == NULL;
-}
 
 
 /* Test whether a character is a space, tab or newline. */
@@ -368,20 +370,66 @@ Number ExprEvaluate(struct Expr *e, enum ErrorCode *ec) {
 
 
 void Report(struct Expr *root) {
-    Number result;
-    enum ErrorCode ec;
-
 	SchemePrint(root);
 	CPrint(root);
 	PSPrint(root);
-	result = ExprEvaluate(root, &ec);
-	printf("%d\n", result);
 }
 
 
-
-
 int main(void) {
+    struct Stack *stack = StackNew();
+    struct Expr expression;
+    enum ErrorCode generation_error;
+    enum ErrorCode evaluate_error = ec_ok;
+    Number result;
+
+
+    /*
+    printf("%d\n", StackIsEmpty(stack));
+    expression.type = operand;
+    expression._.number = 3;
+    StackPush(stack, &expression);
+    printf("%d\n", StackIsEmpty(stack));
+    StackPop(stack, &expression);
+    printf("%d\n", StackIsEmpty(stack));
+
+    return 0;
+    */
+    generation_error = GenerateAST(stack, &expression);
+    result = ExprEvaluate(&expression, &evaluate_error);
+
+    switch (generation_error) {
+    case ec_ok:
+        if (evaluate_error == ec_div_zero)
+            printf("Division par zéro.\n");
+        else {
+            Report(&expression);
+            printf("%d\n", result);
+        }
+        break;
+
+    case ec_invalid_symbol:
+        printf("Symbole invalide.\n");
+        break;
+
+    case ec_div_zero:
+        printf("Division par zéro.\n");
+        break;
+
+    case ec_eof:
+        printf("EOF\n");
+        break;
+
+    case ec_invalid_syntax:
+        printf("Erreur de syntaxe.\n");
+        break;
+
+    case ec_empty_expression:
+    	break;
+    }
+
+
+    StackFree(stack);
     return 0;
 }
 
