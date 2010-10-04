@@ -64,7 +64,15 @@ struct Expr *ExprNewBinaryOperator(enum Operator op,
     e->_.expression.left = e1;
     e->_.expression.right = e2;
     return e;
+}
 
+
+void ExprFree(struct Expr *e) {
+    if (e->type == expr) {
+        ExprFree(e->_.expression.left);
+        ExprFree(e->_.expression.right);
+    }
+    free(e);
 }
 
 
@@ -73,6 +81,12 @@ struct Node {
 	struct Expr value;
 	struct Node *next;
 };
+
+
+void NodeFree(struct Node *n) {
+    ExprFree(&n->value);
+    free(n);
+}
 
 
 /* A linked list with a reference to the first node. */
@@ -100,7 +114,7 @@ void StackFree(struct Stack *stack) {
     /* Free every node in the stack. */
     while (stack->head != NULL) {
         struct Node *next = stack->head->next;
-        free(stack->head);
+        NodeFree(stack->head);
         stack->head = next;
     }
 
@@ -418,19 +432,6 @@ int main(void) {
     enum ErrorCode generation_error;
     enum ErrorCode evaluate_error = ec_ok;
     Number result;
-
-
-    /*
-    printf("%d\n", StackIsEmpty(stack));
-    expression.type = operand;
-    expression._.number = 3;
-    StackPush(stack, &expression);
-    printf("%d\n", StackIsEmpty(stack));
-    StackPop(stack, &expression);
-    printf("%d\n", StackIsEmpty(stack));
-
-    return 0;
-    */
 
     printf("EXPRESSION? ");
 
