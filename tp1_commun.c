@@ -39,6 +39,35 @@ struct Expr {
 };
 
 
+struct Expr *ExprNewNumber(Number n) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+
+    if (e == NULL)
+        abort();
+
+    e->type = operand;
+    e->_.number = n;
+    return e;
+}
+
+
+struct Expr *ExprNewBinaryOperator(enum Operator op,
+                                   struct Expr *e1,
+                                   struct Expr *e2) {
+    struct Expr *e = malloc(sizeof(struct Expr));
+
+    if (e == NULL)
+        abort();
+
+    e->type = expr;
+    e->_.expression.operator = op;
+    e->_.expression.left = e1;
+    e->_.expression.right = e2;
+    return e;
+
+}
+
+
 /* Single element of a linked list. */
 struct Node {
 	struct Expr value;
@@ -56,6 +85,11 @@ struct Stack {
 /* Create a new stack on the heap and return a pointer to it. */
 struct Stack *StackNew() {
     struct Stack *stack = malloc(sizeof(struct Stack));
+
+    /* VINCERIC: Possiblement changer le comportement. */
+    if (stack == NULL)
+        abort();
+
     stack->head = NULL;
     return stack;
 }
@@ -84,6 +118,10 @@ int StackIsEmpty(struct Stack *stack) {
 /* Add an expression to the top of the stack. */
 void StackPush(struct Stack *stack, struct Expr *e) {
     struct Node *new = malloc(sizeof(struct Node));
+
+    if (new == NULL)
+        abort();
+
     new->value = *e;
     new->next = stack->head;
     stack->head = new;
@@ -93,13 +131,13 @@ void StackPush(struct Stack *stack, struct Expr *e) {
 /* Remove the top element of the stack and put it in out and return 1.
    If the stack is empty, return 0 and set out to NULL.
  */
-int StackPop(struct Stack *stack, struct Expr *out) {
+int StackPop(struct Stack *stack, struct Expr **out) {
     if (StackIsEmpty(stack)) {
         out = NULL;
         return 0;
     }
     else {
-        *out = stack->head->value;
+        *out = &(stack->head->value);
         stack->head = stack->head->next;
         return 1;
     }
@@ -174,7 +212,7 @@ enum GeneratorState { st_normal, st_number, st_operator };
 /* Read a string of characters from stdin and construct an AST.
    Store the final expression tree in out.
  */
-enum ErrorCode GenerateAST(struct Stack *stack, struct Expr *out) {
+enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
     enum GeneratorState state = st_normal;
     int c; /* Character that was just read. */
     int number; /* The integer that is currently being read. */
@@ -192,19 +230,15 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr *out) {
             }
             else if (isoperator(c)) {
                 /* VINCERIC: Trouver où faire le free() */
-                struct Expr *right = malloc(sizeof(struct Expr));
-                struct Expr *left = malloc(sizeof(struct Expr));
-                struct Expr *expression = malloc(sizeof(struct Expr));
+                struct Expr *right;
+                struct Expr *left;
+                struct Expr *expression;
 
                 /* Error if there weren't (at least) two expressions on the stack. */
-                if (!StackPop(stack, right) || !StackPop(stack, left))
+                if (!StackPop(stack, &right) || !StackPop(stack, &left))
                     return ec_invalid_syntax;
 
-                expression->type = expr;
-                expression->_.expression.operator = CharToOperator(c);
-                expression->_.expression.left = left;
-                expression->_.expression.right = right;
-
+                expression = ExprNewBinaryOperator(CharToOperator(c), left, right);
                 StackPush(stack, expression);
             }
             break;
@@ -217,11 +251,8 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr *out) {
                 return ec_invalid_syntax;
             }
             else if (isspace(c)) {
-                struct Expr *expression = malloc(sizeof(struct Expr));
-                expression->type = operand;
-                expression->_.number = number;
+                struct Expr *expression = ExprNewNumber(number);
                 StackPush(stack, expression);
-
                 state = st_normal;
             }
             break;
@@ -268,10 +299,13 @@ void SchemeExprPrint(struct Expr *e) {
 }
 
 void SchemePrint(struct Expr *root) {
+    printf("    Scheme: ");
     SchemeExprPrint(root);
     printf("\n");
 }
 
+
+/* VINCERIC: Problème avec le parenthèsage: ex: 2 1 8 * /        */
 void CExprPrint(struct Expr *e) {
 	int par_left = 0;	/* parentheses around left sub-expression? */
 	int par_right = 0;	/* parentheses around right sub-expression? */
@@ -311,6 +345,7 @@ void CExprPrint(struct Expr *e) {
 }
 
 void CPrint(struct Expr *root) {
+    printf("         C: ");
     CExprPrint(root);
     printf("\n");
 }
@@ -328,6 +363,7 @@ void PSExprPrint(struct Expr *e) {
 }
 
 void PSPrint(struct Expr *root) {
+    printf("Postscript: ");
 	PSExprPrint(root);
 	printf("\n");
 }
@@ -378,7 +414,7 @@ void Report(struct Expr *root) {
 
 int main(void) {
     struct Stack *stack = StackNew();
-    struct Expr expression;
+    struct Expr *expression;
     enum ErrorCode generation_error;
     enum ErrorCode evaluate_error = ec_ok;
     Number result;
@@ -395,36 +431,31 @@ int main(void) {
 
     return 0;
     */
+
+    printf("EXPRESSION? ");
+
     generation_error = GenerateAST(stack, &expression);
-    result = ExprEvaluate(&expression, &evaluate_error);
+    result = ExprEvaluate(expression, &evaluate_error);
 
     switch (generation_error) {
     case ec_ok:
         if (evaluate_error == ec_div_zero)
             printf("Division par zéro.\n");
         else {
-            Report(&expression);
+            Report(expression);
+            printf("    Valeur: ");
             printf("%d\n", result);
         }
         break;
 
     case ec_invalid_symbol:
-        printf("Symbole invalide.\n");
+    case ec_invalid_syntax:
+        printf("ERREUR DE SYNTAXE!\n");
         break;
 
     case ec_div_zero:
-        printf("Division par zéro.\n");
-        break;
-
-    case ec_eof:
-        printf("EOF\n");
-        break;
-
-    case ec_invalid_syntax:
-        printf("Erreur de syntaxe.\n");
-        break;
-
     case ec_empty_expression:
+    case ec_eof:
     	break;
     }
 
