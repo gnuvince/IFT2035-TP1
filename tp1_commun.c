@@ -151,8 +151,11 @@ int StackPop(struct Stack *stack, struct Expr **out) {
         return 0;
     }
     else {
+        struct Node *n = stack->head;
         *out = stack->head->value;
         stack->head = stack->head->next;
+        /* Free the space taken by the node. */
+        free(n);
         return 1;
     }
 }
