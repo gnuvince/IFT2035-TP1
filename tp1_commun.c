@@ -252,6 +252,133 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr *out) {
 
 
 
+void SchemeExprPrint(struct Expr *e) {
+	if (e->type == operand)
+		printf("%d", e->_.number);
+	else {
+		printf("(");
+		printf("%c ", OperatorToChar(e->_.expression.operator));
+		SchemeExprPrint(e->_.expression.left);
+		printf(" ");
+		SchemeExprPrint(e->_.expression.right);
+		printf(")");
+	}
+}
+
+void SchemePrint(struct Expr *root) {
+    SchemeExprPrint(root);
+    printf("\n");
+}
+
+void CExprPrint(struct Expr *e) {
+	int par_left = 0;	/* parentheses around left sub-expression? */
+	int par_right = 0;	/* parentheses around right sub-expression? */
+	enum Operator op_top, op_left, op_right;
+
+	if (e->type == operand)
+        printf("%d", e->_.number);
+	else {
+		op_top = e->_.expression.operator;
+		/* Determine where we need parentheses */
+		if (op_top == op_mul || op_top == op_div) {
+			if (e->_.expression.left->type == expr) {
+				op_left = e->_.expression.left->_.expression.operator;
+				if (op_left == op_add || op_left == op_sub)
+					par_left = 1;
+			}
+			if (e->_.expression.right->type == expr) {
+				op_right = e->_.expression.right->_.expression.operator;
+				if (op_right == op_add || op_right == op_sub)
+					par_right = 1;
+			}
+		}
+		if (par_left)
+			printf("(");
+		CExprPrint(e->_.expression.left);
+		if (par_left)
+			printf(")");
+		printf(" ");
+		printf("%c", OperatorToChar(op_top));
+		printf(" ");
+		if (par_right)
+			printf("(");
+		CExprPrint(e->_.expression.right);
+		if (par_right)
+			printf(")");
+	}
+}
+
+void CPrint(struct Expr *root) {
+    CExprPrint(root);
+    printf("\n");
+}
+
+void PSExprPrint(struct Expr *e) {
+	if (e->type == operand)
+		printf("%d", e->_.number);
+	else {
+		PSExprPrint(e->_.expression.left);
+		printf(" ");
+		PSExprPrint(e->_.expression.right);
+		printf(" ");
+		printf("%s", OperatorToPS(e->_.expression.operator));
+	}
+}
+
+void PSPrint(struct Expr *root) {
+	PSExprPrint(root);
+	printf("\n");
+}
+
+
+
+Number ExprEvaluate(struct Expr *e, enum ErrorCode *ec) {
+    Number left, right;
+
+	if (e->type == operand)
+		return e->_.number;
+	else {
+		switch (e->_.expression.operator) {
+		case (op_add):
+			return ExprEvaluate(e->_.expression.left, ec) +
+                ExprEvaluate(e->_.expression.right, ec);
+
+		case (op_sub):
+			return ExprEvaluate(e->_.expression.left, ec) -
+                ExprEvaluate(e->_.expression.right, ec);
+
+		case (op_mul):
+			return ExprEvaluate(e->_.expression.left, ec) *
+                ExprEvaluate(e->_.expression.right, ec);
+
+		case (op_div):
+            left = ExprEvaluate(e->_.expression.left, ec);
+            right = ExprEvaluate(e->_.expression.right, ec);
+
+            if (right == 0) {
+                *ec = ec_div_zero;
+                return 1;
+            }
+            else
+                return left / right;
+		}
+	}
+	return 0;
+}
+
+
+void Report(struct Expr *root) {
+    Number result;
+    enum ErrorCode ec;
+
+	SchemePrint(root);
+	CPrint(root);
+	PSPrint(root);
+	result = ExprEvaluate(root, &ec);
+	printf("%d\n", result);
+}
+
+
 
 
 int main(void) {
