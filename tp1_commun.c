@@ -464,6 +464,7 @@ int main(void) {
     }
 
 
+    ExprFree(expression);
     StackFree(stack);
     return 0;
 }
