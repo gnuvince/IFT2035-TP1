@@ -78,13 +78,13 @@ void ExprFree(struct Expr *e) {
 
 /* Single element of a linked list. */
 struct Node {
-	struct Expr value;
+	struct Expr *value;
 	struct Node *next;
 };
 
 
 void NodeFree(struct Node *n) {
-    ExprFree(&n->value);
+    ExprFree(n->value);
     free(n);
 }
 
@@ -136,7 +136,7 @@ void StackPush(struct Stack *stack, struct Expr *e) {
     if (new == NULL)
         abort();
 
-    new->value = *e;
+    new->value = e;
     new->next = stack->head;
     stack->head = new;
 }
@@ -151,7 +151,7 @@ int StackPop(struct Stack *stack, struct Expr **out) {
         return 0;
     }
     else {
-        *out = &(stack->head->value);
+        *out = stack->head->value;
         stack->head = stack->head->next;
         return 1;
     }
@@ -441,7 +441,7 @@ int main(void) {
     switch (generation_error) {
     case ec_ok:
         if (evaluate_error == ec_div_zero)
-            printf("Division par zéro.\n");
+            printf("DIVISION PAR ZÉRO!\n");
         else {
             Report(expression);
             printf("    Valeur: ");
@@ -450,6 +450,9 @@ int main(void) {
         break;
 
     case ec_invalid_symbol:
+        printf("SYMBOLE INVALIDE!\n");
+        break;
+
     case ec_invalid_syntax:
         printf("ERREUR DE SYNTAXE!\n");
         break;
