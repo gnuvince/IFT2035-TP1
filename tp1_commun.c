@@ -5,7 +5,7 @@
 do {                                            \
     printf("MÉMOIRE ÉPUISÉE!\n");               \
     abort();                                    \
-} while (0);
+} while (0)
 
 /* Enumeration for our four arithmetic operations: +, -, * and /. */
 enum Operator {
