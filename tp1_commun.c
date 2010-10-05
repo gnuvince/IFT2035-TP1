@@ -321,10 +321,8 @@ void SchemePrint(struct Expr *root) {
     printf("\n");
 }
 
-
-/* VINCERIC: Problème avec le parenthèsage: ex: 2 1 8 * /        */
 void CExprPrint(struct Expr *e) {
-	int par_left = 0;	/* parentheses around left sub-expression? */
+    int par_left = 0;	/* parentheses around left sub-expression? */
 	int par_right = 0;	/* parentheses around right sub-expression? */
 	enum Operator op_top, op_left, op_right;
 
@@ -332,7 +330,6 @@ void CExprPrint(struct Expr *e) {
         printf("%d", e->_.number);
 	else {
 		op_top = e->_.expression.operator;
-		/* Determine where we need parentheses */
 		if (op_top == op_mul || op_top == op_div) {
 			if (e->_.expression.left->type == expr) {
 				op_left = e->_.expression.left->_.expression.operator;
@@ -343,6 +340,11 @@ void CExprPrint(struct Expr *e) {
 				op_right = e->_.expression.right->_.expression.operator;
 				if (op_right == op_add || op_right == op_sub)
 					par_right = 1;
+                else if (op_top == op_mul && op_right == op_div)
+                    par_right = 1;
+                else if (op_top == op_div && op_right == op_mul)
+                    par_right = 1;
+
 			}
 		}
 		if (par_left)
@@ -358,7 +360,8 @@ void CExprPrint(struct Expr *e) {
 		CExprPrint(e->_.expression.right);
 		if (par_right)
 			printf(")");
-	}
+
+    }
 }
 
 void CPrint(struct Expr *root) {
