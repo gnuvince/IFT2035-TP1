@@ -359,18 +359,13 @@ void CExprPrint(struct Expr *e) {
 		if (op_top == op_mul || op_top == op_div) {
 			if (e->_.expression.left->type == expr) {
 				op_left = e->_.expression.left->_.expression.operator;
-				if (op_left == op_add || op_left == op_sub)
-					par_left = 1;
+				par_left = op_left == op_add || op_left == op_sub;
 			}
 			if (e->_.expression.right->type == expr) {
 				op_right = e->_.expression.right->_.expression.operator;
-				if (op_right == op_add || op_right == op_sub)
-					par_right = 1;
-                else if (op_top == op_mul && op_right == op_div)
-                    par_right = 1;
-                else if (op_top == op_div && op_right == op_mul)
-                    par_right = 1;
-
+                par_right = (op_right == op_add || op_right == op_sub)
+                    || (op_top == op_mul && op_right == op_div)
+                    || (op_top == op_div && op_right == op_mul);
 			}
 		}
 		if (par_left)
