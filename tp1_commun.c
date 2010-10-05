@@ -1,6 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define OUT_OF_MEMORY()                         \
+do {                                            \
+    printf("MÉMOIRE ÉPUISÉE!\n");               \
+    abort();                                    \
+} while (0);
+
 /* Enumeration for our four arithmetic operations: +, -, * and /. */
 enum Operator {
 	op_add, op_sub, op_mul, op_div
@@ -39,11 +45,16 @@ struct Expr {
 };
 
 
+/* Allocate a new Expr containing a number.  ExprFree() needs to be
+ * called when the object is no longer used.
+ *
+ * OUT_OF_MEMORY() is called if available memory is exhausted.
+ */
 struct Expr *ExprNewNumber(Number n) {
     struct Expr *e = malloc(sizeof(struct Expr));
 
     if (e == NULL)
-        abort();
+        OUT_OF_MEMORY();
 
     e->type = operand;
     e->_.number = n;
@@ -51,13 +62,18 @@ struct Expr *ExprNewNumber(Number n) {
 }
 
 
+/* Allocate a new Expr containing a binary operation.  ExprFree()
+ * needs to be called when the object is no longer used.
+ *
+ * OUT_OF_MEMORY() is called if available memory is exhausted.
+ */
 struct Expr *ExprNewBinaryOperator(enum Operator op,
                                    struct Expr *e1,
                                    struct Expr *e2) {
     struct Expr *e = malloc(sizeof(struct Expr));
 
     if (e == NULL)
-        abort();
+        OUT_OF_MEMORY();
 
     e->type = expr;
     e->_.expression.operator = op;
@@ -66,7 +82,7 @@ struct Expr *ExprNewBinaryOperator(enum Operator op,
     return e;
 }
 
-
+/* Recursively free the memory used by an Expr. */
 void ExprFree(struct Expr *e) {
     if (e->type == expr) {
         ExprFree(e->_.expression.left);
@@ -82,7 +98,7 @@ struct Node {
 	struct Node *next;
 };
 
-
+/* Free the Expr contained in a Node and free the node object too. */
 void NodeFree(struct Node *n) {
     ExprFree(n->value);
     free(n);
@@ -100,9 +116,8 @@ struct Stack {
 struct Stack *StackNew() {
     struct Stack *stack = malloc(sizeof(struct Stack));
 
-    /* VINCERIC: Possiblement changer le comportement. */
     if (stack == NULL)
-        abort();
+        OUT_OF_MEMORY();
 
     stack->head = NULL;
     return stack;
@@ -134,7 +149,7 @@ void StackPush(struct Stack *stack, struct Expr *e) {
     struct Node *new = malloc(sizeof(struct Node));
 
     if (new == NULL)
-        abort();
+        OUT_OF_MEMORY();
 
     new->value = e;
     new->next = stack->head;
@@ -214,7 +229,7 @@ enum Operator CharToOperator(char c) {
     case '*': return op_mul;
     case '/': return op_div;
     }
-    return '_'; /* Should be unreachable. */
+    return -1; /* Should be unreachable. */
 }
 
 /* Enumeration of the different states that the generator is in:
@@ -223,7 +238,6 @@ enum Operator CharToOperator(char c) {
    - st_operator: When reading an operator character
  */
 enum GeneratorState { st_normal, st_number, st_operator };
-
 
 
 /* Read a string of characters from stdin and construct an AST.
@@ -246,7 +260,6 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
                 state = st_number;
             }
             else if (isoperator(c)) {
-                /* VINCERIC: Trouver où faire le free() */
                 struct Expr *right;
                 struct Expr *left;
                 struct Expr *expression;
@@ -301,7 +314,7 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
 }
 
 
-
+/* Display an Expr in Scheme format. */
 void SchemeExprPrint(struct Expr *e) {
 	if (e->type == operand)
 		printf("%d", e->_.number);
@@ -321,6 +334,17 @@ void SchemePrint(struct Expr *root) {
     printf("\n");
 }
 
+
+/* Display an Expr in C format.
+ *
+ * To avoid extraneous parentheses, we use the following technique:
+ * - If the top operator is + or -, don't parenthesize either branch.
+ * - If the top operator is * or -:
+ *    - Parenthesize either branch if they have a + or - operator;
+ *    - Don't parenthesize the left branch if it has a + or - operator;
+ *    - Parenthesize the right branch only if it's the "opposite"
+ *      operator (e.g. / under a *, or vice-versa).
+ */
 void CExprPrint(struct Expr *e) {
     int par_left = 0;	/* parentheses around left sub-expression? */
 	int par_right = 0;	/* parentheses around right sub-expression? */
@@ -370,6 +394,8 @@ void CPrint(struct Expr *root) {
     printf("\n");
 }
 
+
+/* Display an Expr in Postscrit format. */
 void PSExprPrint(struct Expr *e) {
 	if (e->type == operand)
 		printf("%d", e->_.number);
@@ -389,30 +415,28 @@ void PSPrint(struct Expr *root) {
 }
 
 
-
+/* Compute and return the solution to a given Expr.  If the expression
+ * contains a division by zero, ec will be set to ec_div_zero.  This
+ * condition should always be verified before using the result. */
 Number ExprEvaluate(struct Expr *e, enum ErrorCode *ec) {
     Number left, right;
 
 	if (e->type == operand)
 		return e->_.number;
 	else {
+        left = ExprEvaluate(e->_.expression.left, ec);
+        right = ExprEvaluate(e->_.expression.right, ec);
 		switch (e->_.expression.operator) {
 		case (op_add):
-			return ExprEvaluate(e->_.expression.left, ec) +
-                ExprEvaluate(e->_.expression.right, ec);
+			return left + right;
 
 		case (op_sub):
-			return ExprEvaluate(e->_.expression.left, ec) -
-                ExprEvaluate(e->_.expression.right, ec);
+			return left - right;
 
 		case (op_mul):
-			return ExprEvaluate(e->_.expression.left, ec) *
-                ExprEvaluate(e->_.expression.right, ec);
+			return left * right;
 
 		case (op_div):
-            left = ExprEvaluate(e->_.expression.left, ec);
-            right = ExprEvaluate(e->_.expression.right, ec);
-
             if (right == 0) {
                 *ec = ec_div_zero;
                 return 1;
@@ -425,12 +449,23 @@ Number ExprEvaluate(struct Expr *e, enum ErrorCode *ec) {
 }
 
 
+/* Display the postfix expression in Scheme, C and Postscript formats
+ * with the appropriate header. */
 void Report(struct Expr *root) {
 	SchemePrint(root);
 	CPrint(root);
 	PSPrint(root);
 }
 
+/* Reads characters until the end-of-line is reached.  This is used to
+ * empty the input buffer when GenerateAST() returns before consumming
+ * its entire input buffer. */
+int EmptyInputBuffer() {
+    int x = 0;
+    while (getchar() != '\n')
+        x++;
+    return x;
+}
 
 int main(void) {
     struct Stack *stack = StackNew();
@@ -439,40 +474,42 @@ int main(void) {
     enum ErrorCode evaluate_error = ec_ok;
     Number result;
 
-    printf("EXPRESSION? ");
+    do {
+        printf("EXPRESSION? ");
 
-    generation_error = GenerateAST(stack, &expression);
-    result = ExprEvaluate(expression, &evaluate_error);
+        generation_error = GenerateAST(stack, &expression);
+        result = ExprEvaluate(expression, &evaluate_error);
 
-    switch (generation_error) {
-    case ec_ok:
-        if (evaluate_error == ec_div_zero)
-            printf("DIVISION PAR ZÉRO!\n");
-        else {
-            Report(expression);
-            printf("    Valeur: ");
-            printf("%d\n", result);
+        switch (generation_error) {
+        case ec_ok:
+            if (evaluate_error == ec_div_zero)
+                printf("DIVISION PAR ZÉRO!\n");
+            else {
+                Report(expression);
+                printf("    Valeur: ");
+                printf("%d\n", result);
+            }
+            break;
+
+        case ec_invalid_symbol:
+            printf("SYMBOLE INVALIDE!\n");
+            EmptyInputBuffer();
+            break;
+
+        case ec_invalid_syntax:
+            printf("ERREUR DE SYNTAXE!\n");
+            EmptyInputBuffer();
+            break;
+
+        case ec_div_zero:
+        case ec_empty_expression:
+        case ec_eof:
+            break;
         }
-        break;
-
-    case ec_invalid_symbol:
-        printf("SYMBOLE INVALIDE!\n");
-        break;
-
-    case ec_invalid_syntax:
-        printf("ERREUR DE SYNTAXE!\n");
-        break;
-
-    case ec_div_zero:
-    case ec_empty_expression:
-    case ec_eof:
-    	break;
-    }
-
+        putchar('\n');
+    } while (generation_error != ec_eof);
 
     ExprFree(expression);
     StackFree(stack);
     return 0;
 }
-
-
