@@ -1,11 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define OUT_OF_MEMORY()                         \
-do {                                            \
-    printf("MÉMOIRE ÉPUISÉE!\n");               \
-    abort();                                    \
-} while (0)
 
 /* Enumeration for our four arithmetic operations: +, -, * and /. */
 enum Operator {
@@ -43,6 +38,13 @@ struct Expr {
 		} expression;
 	} _;
 };
+
+
+void OUT_OF_MEMORY() {
+    printf("MÉMOIRE ÉPUISÉE!\n");
+    abort();
+}
+
 
 
 /* Allocate a new Expr containing a number.  ExprFree() needs to be
