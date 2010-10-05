@@ -178,6 +178,14 @@ int StackPop(struct Stack *stack, struct Expr **out) {
 }
 
 
+void StackClear(struct Stack *stack) {
+    struct Expr *e;
+    while (!StackIsEmpty(stack)) {
+        StackPop(stack, &e);
+        ExprFree(e);
+    }
+}
+
 
 /* Test whether a character is a space, tab or newline. */
 int isspace(int c) {
@@ -250,7 +258,7 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
     int c; /* Character that was just read. */
     int number; /* The integer that is currently being read. */
 
-    while (1) {
+    do {
         c = getchar();
         if (c == EOF) return ec_eof;
         if (!isvalid(c)) return ec_invalid_symbol;
@@ -301,9 +309,8 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
         default:
             break;
         }
+    } while (c != '\n');
 
-        if (c == '\n') break;
-    }
 
     if (StackPop(stack, out)) {
         /* No more elements in the stack, expression consummed entirely. */
@@ -503,10 +510,18 @@ int main(void) {
         case ec_eof:
             break;
         }
+
         putchar('\n');
+
+        /* Free the expression. */
         if (expression != NULL) {
             ExprFree(expression);
             expression = NULL;
+        }
+
+        /* Clear the stack if some elements were left on it. */
+        if (!StackIsEmpty(stack)) {
+            StackClear(stack);
         }
 
     } while (generation_error != ec_eof);
