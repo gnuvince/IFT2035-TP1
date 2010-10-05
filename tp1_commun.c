@@ -466,7 +466,7 @@ int EmptyInputBuffer() {
 
 int main(void) {
     struct Stack *stack = StackNew();
-    struct Expr *expression;
+    struct Expr *expression = NULL;
     enum ErrorCode generation_error;
     enum ErrorCode evaluate_error = ec_ok;
     Number result;
@@ -486,19 +486,16 @@ int main(void) {
                 printf("    Valeur: ");
                 printf("%d\n", result);
             }
-            ExprFree(expression);
             break;
 
         case ec_invalid_symbol:
             printf("SYMBOLE INVALIDE!\n");
             EmptyInputBuffer();
-            ExprFree(expression);
             break;
 
         case ec_invalid_syntax:
             printf("ERREUR DE SYNTAXE!\n");
             EmptyInputBuffer();
-            ExprFree(expression);
             break;
 
         case ec_div_zero:
@@ -507,6 +504,10 @@ int main(void) {
             break;
         }
         putchar('\n');
+        if (expression != NULL) {
+            ExprFree(expression);
+            expression = NULL;
+        }
 
     } while (generation_error != ec_eof);
 
