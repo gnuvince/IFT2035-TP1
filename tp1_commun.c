@@ -475,10 +475,10 @@ int main(void) {
         printf("EXPRESSION? ");
 
         generation_error = GenerateAST(stack, &expression);
-        result = ExprEvaluate(expression, &evaluate_error);
 
         switch (generation_error) {
         case ec_ok:
+            result = ExprEvaluate(expression, &evaluate_error);
             if (evaluate_error == ec_div_zero)
                 printf("DIVISION PAR ZÉRO!\n");
             else {
@@ -486,16 +486,19 @@ int main(void) {
                 printf("    Valeur: ");
                 printf("%d\n", result);
             }
+            ExprFree(expression);
             break;
 
         case ec_invalid_symbol:
             printf("SYMBOLE INVALIDE!\n");
             EmptyInputBuffer();
+            ExprFree(expression);
             break;
 
         case ec_invalid_syntax:
             printf("ERREUR DE SYNTAXE!\n");
             EmptyInputBuffer();
+            ExprFree(expression);
             break;
 
         case ec_div_zero:
@@ -504,9 +507,9 @@ int main(void) {
             break;
         }
         putchar('\n');
+
     } while (generation_error != ec_eof);
 
-    ExprFree(expression);
     StackFree(stack);
     return 0;
 }
