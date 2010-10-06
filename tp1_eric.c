@@ -431,61 +431,66 @@ void ASTprint (struct AST *ast) {
 }
 
 int main(void) {
-    struct List *tokens = ListNew();
+    struct List *tokens;
     /* struct Node *n; */
     enum ErrorCode tokenize_error, astize_error;
 	struct AST *ast;
 	struct Expr *expr;
+	int completed = 0;
 
-    tokenize_error = Tokenize(tokens);
+	while (!completed) {
+		tokens = ListNew();
+		tokenize_error = Tokenize(tokens);
 
-    switch (tokenize_error) {
-    case ec_ok:
-    	/* ASTizing */
-    	ast = ASTNew();
-    	expr  = ExprNew();
-    	ast->root = expr;
-    	astize_error = ASTize(tokens, ast);
-    	Report(ast);
+		switch (tokenize_error) {
+		case ec_ok:
+			/* ASTizing */
+			ast = ASTNew();
+			expr  = ExprNew();
+			ast->root = expr;
+			astize_error = ASTize(tokens, ast);
+			Report(ast);
 
-    	switch (astize_error) {
-    	case ec_ok:
+			switch (astize_error) {
+			case ec_ok:
+				break;
+
+			case ec_invalid_syntax:
+				printf("Invalid syntax.\n");
+				break;
+
+			case ec_empty_expression:
+				printf("Empty expression provided.\n");
+				break;
+
+			case ec_div_zero:
+			case ec_invalid_symbol:
+			case ec_eof:
+				break;
+			}
+			ASTFree(ast);
 			break;
 
-    	case ec_invalid_syntax:
-			printf("Invalid syntax.\n");
+		case ec_invalid_symbol:
+			printf("Invalid symbol.\n");
 			break;
 
-    	case ec_empty_expression:
-			printf("Empty expression provided.\n");
+		case ec_div_zero:
+			printf("Division by zero.\n");
 			break;
 
-    	case ec_div_zero:
-    	case ec_invalid_symbol:
-    	case ec_eof:
+		case ec_eof:
+				completed = 1;
+				printf("EOF\n");
+				break;
+
+		case ec_invalid_syntax:
+		case ec_empty_expression:
 			break;
-    	}
-    	break;
+		}
 
-    case ec_invalid_symbol:
-        printf("Invalid symbol.\n");
-        break;
-
-    case ec_div_zero:
-        printf("Division by zero.\n");
-        break;
-
-    case ec_eof:
-            printf("EOF\n");
-            break;
-
-    case ec_invalid_syntax:
-    case ec_empty_expression:
-    	break;
-    }
-
-    ASTFree(ast);
-    ListFree(tokens);
+		ListFree(tokens);
+	}
 
     return 0;
 }
