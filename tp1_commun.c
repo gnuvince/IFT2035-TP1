@@ -289,14 +289,21 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
                 struct Expr *left;
                 struct Expr *expression;
 
-                /* Error if there weren't (at least) two expressions on the stack. */
-                if (!StackPop(stack, &right) || !StackPop(stack, &left)) {
+                int success_pop_left, success_pop_right;
+
+                success_pop_right = StackPop(stack, &right);
+                success_pop_left = StackPop(stack, &left);
+
+                if (success_pop_right && success_pop_left) {
+                    expression = ExprNewBinaryOperator(CharToOperator(c), left, right);
+                    StackPush(stack, expression);
+                }
+                else {
+                    if (success_pop_right)
+                        ExprFree(right);
                     EmptyInputBuffer();
                     return ec_invalid_syntax;
                 }
-
-                expression = ExprNewBinaryOperator(CharToOperator(c), left, right);
-                StackPush(stack, expression);
             }
             break;
 
