@@ -1,0 +1,105 @@
+\documentclass[10pt]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{cancel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+
+\begin{document}
+
+\title{Rapport - Devoir 1}
+\date{Octobre 2010}
+\author{Vincent Foley-Bourgon (FOLV08078309) \and
+  Eric Thivierge (THIE09016601)}
+
+\maketitle
+
+\section{Fonctionnement général du programme}
+
+Le programme effectue, dans l'ordre, les opérations suivantes:
+
+\begin{enumerate}
+  \item Lecture d'une chaîne.
+  \item Détection des erreurs de syntaxe.
+  \item Construction d'un arbre syntaxique abstrait.
+  \item Évaluation du résultat.
+  \item Détection des erreurs de sémantique.
+  \item Affichage.
+  \item Retour à l'étape 1.
+\end{enumerate}
+
+
+\subsection{Lecture d'une chaîne}
+
+La lecture de la chaîne entrée par l'utilisateur se fait caractère par
+caractère.  Cette lecture est entre-mêlée avec la détection d'erreurs
+de syntaxe et la construction de l'ASA (décrits ci-dessous).
+
+\subsection{Détection des erreurs de syntaxe}
+
+Aussitôt qu'une erreur de syntaxe est détectée, la fonction qui génère
+l'ASA va vider le tampon d'entrée, libérer les structures de données
+temporaires et retourner un code d'erreur.
+
+\subsection{Construction d'un arbre syntaxique abstrait}
+
+Lorsqu'un nombre est lu entièrement, il est ajouté à une pile
+contenant des expressions (une structure qui sera définie plus tard).
+Lorsqu'un opérateur est lu, on combine l'opérateur avec les deux
+dernières expressions sur la pile, et on ajoute cette nouvelle
+expression sur la pile.
+
+\subsection{Évaluation du résultat}
+
+Lorsqu'un ASA est complet, il est parcouru récursivement à partir de
+la racine et à chaque noeud, on applique l'opérateur à ses opérandes.
+
+\subsection{Détection des erreurs de sémantque}
+
+Si durant l'évaluation du résultat une division par zéro est détectée,
+un code d'erreur est activé.
+
+\subsection{Affichage}
+
+Si l'expression était valide syntaxiquement et sémentiquement, on
+affiche sa représentation dans les syntaxes Scheme, C et Postscript
+ainsi que le résultat.  Autrement, un message d'erreur indique la
+nature du problème de l'expression.
+
+
+\section{Représentation des ASAs}
+
+Les arbres de syntaxe abstraite sont des arbres binaires où les noeuds
+internes sont des opérateurs et les feuilles sont des nombres.
+
+Dans l'implémentation en C, cette structure est représenté par le type
+suivant:
+
+\begin{verbatim}
+struct Expr {
+	enum { operand, expr } type;
+	union {
+		Number number;
+		struct BinaryOperator {
+			enum Operator operator;
+			struct Expr *left;
+			struct Expr *right;
+		} expression;
+	} _;
+};
+\end{verbatim}
+
+L'union stockera soit un nombre ou une expression binaire comportant
+un opérateur et deux sous-expressions.  Le champ \emph{type} indique
+quel champ de l'union est présentement stocké en mémoire.
+
+
+
+
+
+
+
+\end{document}
