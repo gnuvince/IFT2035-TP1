@@ -527,6 +527,10 @@ int main(void) {
 
         putchar('\n');
 
+
+        /* Reset evaluate_error */
+        evaluate_error = ec_ok;
+
         /* Free the expression. */
         if (expression != NULL) {
             ExprFree(expression);
