@@ -242,6 +242,18 @@ enum Operator CharToOperator(char c) {
     return -1; /* Should be unreachable. */
 }
 
+
+/* Reads characters until the end-of-line is reached.  This is used to
+ * empty the input buffer when GenerateAST() returns before consumming
+ * its entire input buffer. */
+int EmptyInputBuffer() {
+    int x = 0;
+    while (getchar() != '\n')
+        x++;
+    return x;
+}
+
+
 /* Enumeration of the different states that the generator is in:
    - st_normal: At the beginning of the generation and when reading spaces
    - st_number: When reading digits
@@ -261,7 +273,10 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
     do {
         c = getchar();
         if (c == EOF) return ec_eof;
-        if (!isvalid(c)) return ec_invalid_symbol;
+        if (!isvalid(c)) {
+            EmptyInputBuffer();
+            return ec_invalid_symbol;
+        }
 
         switch (state) {
         case st_normal:
@@ -274,12 +289,21 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
                 struct Expr *left;
                 struct Expr *expression;
 
-                /* Error if there weren't (at least) two expressions on the stack. */
-                if (!StackPop(stack, &right) || !StackPop(stack, &left))
-                    return ec_invalid_syntax;
+                int success_pop_left, success_pop_right;
 
-                expression = ExprNewBinaryOperator(CharToOperator(c), left, right);
-                StackPush(stack, expression);
+                success_pop_right = StackPop(stack, &right);
+                success_pop_left = StackPop(stack, &left);
+
+                if (success_pop_right && success_pop_left) {
+                    expression = ExprNewBinaryOperator(CharToOperator(c), left, right);
+                    StackPush(stack, expression);
+                }
+                else {
+                    if (success_pop_right)
+                        ExprFree(right);
+                    EmptyInputBuffer();
+                    return ec_invalid_syntax;
+                }
             }
             break;
 
@@ -288,6 +312,7 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
                 number = 10*number + digit_to_int(c);
             }
             else if (isoperator(c)) {
+                EmptyInputBuffer();
                 return ec_invalid_syntax;
             }
             else if (isspace(c)) {
@@ -299,6 +324,7 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
 
         case st_operator:
             if (isdigit(c) || isoperator(c)) {
+                EmptyInputBuffer();
                 return ec_invalid_syntax;
             }
             else if (isspace(c)) {
@@ -461,16 +487,6 @@ void Report(struct Expr *root) {
 	PSPrint(root);
 }
 
-/* Reads characters until the end-of-line is reached.  This is used to
- * empty the input buffer when GenerateAST() returns before consumming
- * its entire input buffer. */
-int EmptyInputBuffer() {
-    int x = 0;
-    while (getchar() != '\n')
-        x++;
-    return x;
-}
-
 int main(void) {
     struct Stack *stack = StackNew();
     struct Expr *expression = NULL;
@@ -497,12 +513,10 @@ int main(void) {
 
         case ec_invalid_symbol:
             printf("SYMBOLE INVALIDE!\n");
-            EmptyInputBuffer();
             break;
 
         case ec_invalid_syntax:
             printf("ERREUR DE SYNTAXE!\n");
-            EmptyInputBuffer();
             break;
 
         case ec_div_zero:
@@ -512,6 +526,10 @@ int main(void) {
         }
 
         putchar('\n');
+
+
+        /* Reset evaluate_error */
+        evaluate_error = ec_ok;
 
         /* Free the expression. */
         if (expression != NULL) {
