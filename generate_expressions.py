@@ -21,5 +21,16 @@ def expression():
     return ' '.join(expr)
 
 
+def invalid_symbol():
+    s = expression()
+    i = random.randint(0, len(s) - 1) 
+    c = chr(random.randint(ord('0'), ord('z')))
+    return s[:i] + c + s[i:]
+
+def invalid_syntax():
+    expr = expression().split()
+    random.shuffle(expr)
+    return ' '.join(expr)
+
 for i in xrange(number_of_expressions):
-    print expression()
+    print invalid_syntax()

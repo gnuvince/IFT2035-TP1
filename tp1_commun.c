@@ -1,3 +1,11 @@
+/*
+ * A10 - IFT2035 - Devoir #1
+ *
+ * Vincent Foley-Bourgon (FOLV08078309)
+ * Eric Thivierge        (THIE09016601)
+ *
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -40,6 +48,7 @@ struct Expr {
 };
 
 
+/* OUT_OF_MEMORY is called when malloc() fails. */
 void OUT_OF_MEMORY() {
     printf("MÉMOIRE ÉPUISÉE!\n");
     abort();
@@ -264,6 +273,10 @@ enum GeneratorState { st_normal, st_number, st_operator };
 
 /* Read a string of characters from stdin and construct an AST.
    Store the final expression tree in out.
+
+   A detailed explanation of the inner workings of this function
+   is available in the PDF report.
+
  */
 enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
     enum GeneratorState state = st_normal;
