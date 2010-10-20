@@ -41,7 +41,7 @@ d'erreurs de syntaxe et la construction de l'ASA (décrits ci-dessous).
 \subsection{Détection des erreurs de syntaxe}
 
 Aussitôt qu'une erreur de syntaxe est détectée, la fonction GenerateAST vide
-le tampon d'entrée, libére les structures de données temporaires et retourne
+le tampon d'entrée, libère les structures de données temporaires et retourne
 un code d'erreur.
 
 \subsection{Construction d'un arbre syntaxique abstrait}
@@ -59,10 +59,10 @@ noeud interne contient un opérateur et le programme évalue ce noeud en
 appliquant cette opération aux valeurs des sous-expressions gauches et
 droites.
 
-\subsection{Détection des erreurs de sémantque}
+\subsection{Détection des erreurs de sémantique}
 
 Le programme active un code d'erreur pendant l'évaluation du résultat s'il
-détècte une division par zéro.
+détecte une division par zéro.
 
 
 \subsection{Affichage}
@@ -89,7 +89,7 @@ feuilles des nombres.
 \right.
 \]
 
-Dans l'implémentation en C, cette structure est représenté par le type
+Dans L'implantation en C, cette structure est représenté par le type
 suivant:
 
 \begin{verbatim}
@@ -128,7 +128,7 @@ valeur numérique dans la variable \emph{number} et passe à l'état
 \emph{st\_number} pour lire un nombre.  Si le caractère est un opérateur, le
 programme tente de dépiler deux expressions de la pile et de les combiner avec
 l'opérateur en une nouvelle expression et l'état passe à \emph{st\_operator}.
-S'il n'y a pas suffisament d'expressions sur la pile, le programme vide le
+S'il n'y a pas suffisamment d'expressions sur la pile, le programme vide le
 tampon d'entrée, libère -- s'il y a lieu -- les expressions temporairement
 allouées et retourne le code \emph{ec\_invalid\_syntax}.
 
@@ -160,12 +160,12 @@ La figure suivante résume le fonctionnement de la fonction \emph{GenerateAST}:
 
 \newpage
 
-\section{Minmisation des parenthèses en syntaxe C}
+\section{Minimisation des parenthèses en syntaxe C}
 À partir de la racine, le programme applique les règles suivantes à chaque noeud de
 l'ASA:
 
 Si le noeud visité contient un opérateur d'addition ou de soustraction,
-les sous-expressions de gauche et de droite ne sont pas parentèsées.
+les sous-expressions de gauche et de droite ne sont pas parenthésées.
 
 Si le noeud visité contient un opérateur de multiplication ou de division
 alors le programme traite les sous-expressions de gauche et de droite de la
@@ -173,11 +173,11 @@ façon suivante:
 
 \textbf{Sous-expression de gauche}
 
-Parenthèser la sous-expression de gauche si elle contient un opérateur d'addition ou de soustraction.
+Parenthéser la sous-expression de gauche si elle contient un opérateur d'addition ou de soustraction.
 
 \textbf{Sous-expression de droite}
 
-Parenthèser la sous-expression de droite dans les cas suivants:
+Parenthéser la sous-expression de droite dans les cas suivants:
 
 \begin{itemize}
 \item la sous-expression contient un opérateur d'addition ou de soustraction
@@ -204,7 +204,7 @@ le programme. Le programme utilise les codes d'erreurs suivantes:
 \item ec\_ok: indique que l'opération a terminé sans erreur.
 \item ec\_invalid\_syntax: indique une erreur de syntaxe dans l'expression
 lue.
-\item ec\_empty\_expression: indique qu'il n'y a pas d'expression sur la pile. 
+\item ec\_empty\_expression: indique qu'il n'y a pas d'expression sur la pile.
 \item ec\_div\_zero: indique que l'expression lue contient une division par
 zéro.
 \item ec\_invalid\_symbol: indique que l'expression lue contient un symbole
