@@ -12,14 +12,14 @@
 
 /* Enumeration for our four arithmetic operations: +, -, * and /. */
 enum Operator {
-	op_add, op_sub, op_mul, op_div
+    op_add, op_sub, op_mul, op_div
 };
 
 
 /* Enumeration of all the errors that can occur in this program. */
 enum ErrorCode {
-	ec_ok, ec_invalid_syntax, ec_empty_expression,
-	ec_div_zero, ec_invalid_symbol, ec_eof
+    ec_ok, ec_invalid_syntax, ec_empty_expression,
+    ec_div_zero, ec_invalid_symbol, ec_eof
 };
 
 /* Just in case we decide to change from int to long. */
@@ -36,15 +36,15 @@ typedef int Number;
   operation on two subexpressions.
  */
 struct Expr {
-	enum { operand, expr } type;
-	union {
-		Number number;
-		struct BinaryOperator {
-			enum Operator operator;
-			struct Expr *left;
-			struct Expr *right;
-		} expression;
-	} _;
+    enum { operand, expr } type;
+    union {
+        Number number;
+        struct BinaryOperator {
+            enum Operator operator;
+            struct Expr *left;
+            struct Expr *right;
+        } expression;
+    } _;
 };
 
 
@@ -105,8 +105,8 @@ void ExprFree(struct Expr *e) {
 
 /* Single element of a linked list. */
 struct Node {
-	struct Expr *value;
-	struct Node *next;
+    struct Expr *value;
+    struct Node *next;
 };
 
 /* Free the Expr contained in a Node and free the node object too. */
@@ -364,16 +364,16 @@ enum ErrorCode GenerateAST(struct Stack *stack, struct Expr **out) {
 
 /* Display an Expr in Scheme format. */
 void SchemeExprPrint(struct Expr *e) {
-	if (e->type == operand)
-		printf("%d", e->_.number);
-	else {
-		printf("(");
-		printf("%c ", OperatorToChar(e->_.expression.operator));
-		SchemeExprPrint(e->_.expression.left);
-		printf(" ");
-		SchemeExprPrint(e->_.expression.right);
-		printf(")");
-	}
+    if (e->type == operand)
+        printf("%d", e->_.number);
+    else {
+        printf("(");
+        printf("%c ", OperatorToChar(e->_.expression.operator));
+        SchemeExprPrint(e->_.expression.left);
+        printf(" ");
+        SchemeExprPrint(e->_.expression.right);
+        printf(")");
+    }
 }
 
 void SchemePrint(struct Expr *root) {
@@ -394,39 +394,39 @@ void SchemePrint(struct Expr *root) {
  *      operator (e.g. / under a *, or vice-versa).
  */
 void CExprPrint(struct Expr *e) {
-    int par_left = 0;	/* parentheses around left sub-expression? */
-	int par_right = 0;	/* parentheses around right sub-expression? */
-	enum Operator op_top, op_left, op_right;
+    int par_left = 0;   /* parentheses around left sub-expression? */
+    int par_right = 0;  /* parentheses around right sub-expression? */
+    enum Operator op_top, op_left, op_right;
 
-	if (e->type == operand)
+    if (e->type == operand)
         printf("%d", e->_.number);
-	else {
-		op_top = e->_.expression.operator;
-		if (op_top == op_mul || op_top == op_div) {
-			if (e->_.expression.left->type == expr) {
-				op_left = e->_.expression.left->_.expression.operator;
-				par_left = op_left == op_add || op_left == op_sub;
-			}
-			if (e->_.expression.right->type == expr) {
-				op_right = e->_.expression.right->_.expression.operator;
+    else {
+        op_top = e->_.expression.operator;
+        if (op_top == op_mul || op_top == op_div) {
+            if (e->_.expression.left->type == expr) {
+                op_left = e->_.expression.left->_.expression.operator;
+                par_left = op_left == op_add || op_left == op_sub;
+            }
+            if (e->_.expression.right->type == expr) {
+                op_right = e->_.expression.right->_.expression.operator;
                 par_right = (op_right == op_add || op_right == op_sub)
                     || (op_top == op_mul && op_right == op_div)
                     || (op_top == op_div && op_right == op_mul);
-			}
-		}
-		if (par_left)
-			printf("(");
-		CExprPrint(e->_.expression.left);
-		if (par_left)
-			printf(")");
-		printf(" ");
-		printf("%c", OperatorToChar(op_top));
-		printf(" ");
-		if (par_right)
-			printf("(");
-		CExprPrint(e->_.expression.right);
-		if (par_right)
-			printf(")");
+            }
+        }
+        if (par_left)
+            printf("(");
+        CExprPrint(e->_.expression.left);
+        if (par_left)
+            printf(")");
+        printf(" ");
+        printf("%c", OperatorToChar(op_top));
+        printf(" ");
+        if (par_right)
+            printf("(");
+        CExprPrint(e->_.expression.right);
+        if (par_right)
+            printf(")");
 
     }
 }
@@ -440,21 +440,21 @@ void CPrint(struct Expr *root) {
 
 /* Display an Expr in Postscrit format. */
 void PSExprPrint(struct Expr *e) {
-	if (e->type == operand)
-		printf("%d", e->_.number);
-	else {
-		PSExprPrint(e->_.expression.left);
-		printf(" ");
-		PSExprPrint(e->_.expression.right);
-		printf(" ");
-		printf("%s", OperatorToPS(e->_.expression.operator));
-	}
+    if (e->type == operand)
+        printf("%d", e->_.number);
+    else {
+        PSExprPrint(e->_.expression.left);
+        printf(" ");
+        PSExprPrint(e->_.expression.right);
+        printf(" ");
+        printf("%s", OperatorToPS(e->_.expression.operator));
+    }
 }
 
 void PSPrint(struct Expr *root) {
     printf("Postscript: ");
-	PSExprPrint(root);
-	printf("\n");
+    PSExprPrint(root);
+    printf("\n");
 }
 
 
@@ -464,40 +464,40 @@ void PSPrint(struct Expr *root) {
 Number ExprEvaluate(struct Expr *e, enum ErrorCode *ec) {
     Number left, right;
 
-	if (e->type == operand)
-		return e->_.number;
-	else {
+    if (e->type == operand)
+        return e->_.number;
+    else {
         left = ExprEvaluate(e->_.expression.left, ec);
         right = ExprEvaluate(e->_.expression.right, ec);
-		switch (e->_.expression.operator) {
-		case (op_add):
-			return left + right;
+        switch (e->_.expression.operator) {
+        case (op_add):
+            return left + right;
 
-		case (op_sub):
-			return left - right;
+        case (op_sub):
+            return left - right;
 
-		case (op_mul):
-			return left * right;
+        case (op_mul):
+            return left * right;
 
-		case (op_div):
+        case (op_div):
             if (right == 0) {
                 *ec = ec_div_zero;
                 return 1;
             }
             else
                 return left / right;
-		}
-	}
-	return 0;
+        }
+    }
+    return 0;
 }
 
 
 /* Display the postfix expression in Scheme, C and Postscript formats
  * with the appropriate header. */
 void Report(struct Expr *root) {
-	SchemePrint(root);
-	CPrint(root);
-	PSPrint(root);
+    SchemePrint(root);
+    CPrint(root);
+    PSPrint(root);
 }
 
 int main(void) {
